@@ -96,10 +96,11 @@ micromamba config set channel_priority strict
 
 # ------------------------- dotfiles -------------------------
 echo "[+] Linking dotfiles & appending rc snippets"
-for file_path in $(find "$PWD" -type f -maxdepth 1 -name ".*"); do
-  fname=$(basename "$file_path")
-  cp $file_path $HOME/$fname
-done
+# for file_path in $(find "$PWD" -type f -maxdepth 1 -name ".*"); do
+#   fname=$(basename "$file_path")
+#   cp $file_path $HOME/$fname
+# done
+stow -vt "$HOME" --adopt home
 
 # ------------------------- tmux 2.x tweak -------------------------
 TMUX_VERSION=$(tmux -V | cut -d' ' -f2)
