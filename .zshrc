@@ -1,8 +1,10 @@
+#if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  #source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+#fi
 export TERM="xterm-256color"
 export ZSH="$HOME/.oh-my-zsh"
+export INTERFACES="wlp2s0"
 export LANG="en_US.UTF-8"
-export LC_ALL="en_US.UTF-8"
-export VAST_CONTAINERLABEL="${VAST_CONTAINERLABEL:-$(cat ~/.vast_containerlabel 2>/dev/null || echo "$HOST")}"
 PATH=$PATH:~/.local/bin
 ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=( 
@@ -10,7 +12,9 @@ plugins=(
   zsh-autosuggestions
 )
 source $ZSH/oh-my-zsh.sh
+# stty -ixon
 source ~/.zsh_aliases
+# source ~/miniconda3/bin/activate && conda deactivate
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 # >>> mamba initialize >>>
 # !! Contents within this block are managed by 'micromamba shell init' !!
@@ -24,8 +28,4 @@ else
 fi
 unset __mamba_setup
 # <<< mamba initialize <<<
-if micromamba env list | grep -w '^main$' >/dev/null 2>&1; then
-  micromamba activate main
-else
-  micromamba activate base
-fi
+micromamba activate  # this activates the base environment
