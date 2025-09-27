@@ -1,0 +1,58 @@
+# — OS cruft —
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+Icon?
+._*
+$RECYCLE.BIN/
+
+
+# — Editor/IDE temps —
+*~
+*.swp
+*.swo
+.#*
+\#*\#
+
+
+# — Generic build artifacts —
+*.o
+*.class
+*.exe
+*.dll
+*.com
+*.pid
+*.so # keep commented to avoid hiding intentional shared libs
+
+
+# — Logs —
+*.log
+
+
+# — Python caches (safe globally) —
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+
+# — Archives & packages  —
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.deb
+*.tgz
+
+
+# — Databases  —
+*.sql
+*.sqlite
