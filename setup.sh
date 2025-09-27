@@ -96,11 +96,6 @@ micromamba config set channel_priority strict
 
 # ------------------------- dotfiles -------------------------
 echo "[+] Linking dotfiles & appending rc snippets"
-# for file_path in $(find "$PWD" -type f -maxdepth 1 -name ".*"); do
-#   fname=$(basename "$file_path")
-#   cp $file_path $HOME/$fname
-# done
-
 backup_dir="$(mktemp -d "${HOME}/.dotfile_backups.XXXXXX")"  # create unique temp dir for backups
 
 find "$PWD" -maxdepth 1 -type f -name '.*' -print0 |
