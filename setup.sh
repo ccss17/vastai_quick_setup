@@ -100,7 +100,18 @@ echo "[+] Linking dotfiles & appending rc snippets"
 #   fname=$(basename "$file_path")
 #   cp $file_path $HOME/$fname
 # done
-stow -vt "$HOME" --adopt home
+
+backup_dir="$(mktemp -d "${HOME}/.dotfile_backups.XXXXXX")"  # create unique temp dir for backups
+
+find "$PWD" -maxdepth 1 -type f -name '.*' -print0 |
+while IFS= read -r -d '' src; do
+  base="$(basename -- "$src")"
+  dst="$HOME/$base"
+  [ -e "$dst" ] || [ -L "$dst" ] && mv -f -- "$dst" "$backup_dir/$base"   # backup existing file/symlink
+  cp -p -- "$src" "$dst"                                                  # preserve mode/owner/timestamps
+done
+
+echo "Backups saved to: $backup_dir"
 
 # ------------------------- tmux 2.x tweak -------------------------
 TMUX_VERSION=$(tmux -V | cut -d' ' -f2)
