@@ -53,8 +53,6 @@ On vast.ai, **interruptible** (spot/auction) instances are often 2–4× cheaper
 | `lt`  | `ls --tree`  | Listing    | Tree view for quick structure overview.                               | Requires `lsd`.                                       |
 | `ls`  | `lsd`        | Listing    | Rich, colored, iconified output; faster visual parsing than GNU `ls`. | On Ubuntu/Debian, `lsd` is a separate pkg.            |
 | `g`   | `git`        | VCS        | Common git verbs now 1 char: `g s`, `g d`, `g c -m`…                  | Add your own `git` aliases inside `~/.gitconfig`.     |
-| `gdb` | `gdb -q`     | Debug      | Quiet mode removes startup noise, faster to the point.                | Great with `pwndbg`/`gef` configs.                    |
-| `d`   | `docker`     | Containers | 1‑char docker: `d ps`, `d logs -f`, `d exec -it`.                     | Consider adding function wrappers for common stacks.  |
 | `py`  | `python3`    | Python     | Always uses Py3 even if `python` points elsewhere.                    | Safer on mixed systems.                               |
 | `py2` | `python2`    | Python     | Legacy interpreter (if installed).                                    | Most distros no longer ship Python 2.                 |
 | `py3` | `python3`    | Python     | Redundant alias for clarity.                                          | Good for teaching/demo contexts.                      |
