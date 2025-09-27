@@ -98,8 +98,13 @@ micromamba config set channel_priority strict
 echo "[+] Linking dotfiles & appending rc snippets"
 for file_path in $(find "$PWD" -type f -maxdepth 1 -name ".*"); do
   fname=$(basename "$file_path")
-  cp $file_path ~/$fname
+  if ! [ "$fname" = ".zshrc" ] && ! [ "$fname" = ".gdbinit" ] && ! [ "$fname" = ".gitconfig" ]; then
+    ln -sf "$file_path" "$HOME/$fname"
+  fi
 done
+cat .gitconfig       >> "$HOME/.gitconfig"
+cat .zshrc_vastai    >> "$HOME/.zshrc"
+cat .p10k_vastai.zsh >> "$HOME/.p10k.zsh"
 
 # ------------------------- tmux 2.x tweak -------------------------
 TMUX_VERSION=$(tmux -V | cut -d' ' -f2)
