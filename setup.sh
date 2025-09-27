@@ -1,4 +1,5 @@
-# set -Eeuo pipefail
+#!/usr/bin/env bash
+set -Eeuo pipefail
 trap 'echo "[!] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 export DEBIAN_FRONTEND=noninteractive
 
