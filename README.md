@@ -12,12 +12,14 @@ On vast.ai, **interruptible** (spot/auction) instances are often 2–4× cheaper
 
 ## What the script installs
 
-* `git`, `zsh`, `vim`, `tmux`, `unzip`, `curl`, `wget`, `fd-find` (a.k.a. `fdfind`), `bat` (a.k.a. `batcat`), `time`, `nvtop`, `python3.12-dev`, `build-essential`, `tree`
+* **`pixi`** — fast, lockfile-first, GPU-aware environment manager that unifies conda binaries and PyPI (via `uv`) under one project manifest.
+* **`micromamba`**(instead conda) (+ `conda-forge` & strict priority)
+
+* `fd-find`, `bat`, `time`, `nvtop`, `tree`
 
     * **`fd-find` vs `find`** — sane defaults, fast search, gitignore awareness; dramatically lowers friction when digging through repos/datasets.
     * **`bat` vs `cat`** — syntax highlighting, Git integration, auto‑paging; makes scanning logs/configs much faster.
     * **`nvtop` vs `nvidia-smi`** — interactive GPU process view across multiple GPUs; ideal for training/serving sessions.
-    * **`python3.x-dev` + `build-essential`** — reduces sdist build failures for Python packages with C/C++ extensions.
 * **`btop`** — modern TUI system monitor (CPU/mem/disk/net, process control, mouse support). Faster triage than `top/htop`.
 * **`gotop`** — graphical activity monitor in the terminal; quick visual grasp of spikes/bottlenecks.
 * **`hyperfine`** — reliable micro‑benchmarking (warming, repeats, statistics, export). Great for comparing data loaders, conversion scripts, etc.
@@ -26,40 +28,101 @@ On vast.ai, **interruptible** (spot/auction) instances are often 2–4× cheaper
 * **`zsh` + `oh-my-zsh`** — richer completion, plugin/theme ecosystem, easier to extend than plain bash.
 * **`powerlevel10k`** — fast prompt showing git status, Python venv, time, etc.; high signal density with very low latency.
 * **`tmux`** — persistent terminal sessions, pane/window layouts; SSH disconnects are no longer disruptive.
-* **`uv` (Astral)** — blazingly fast Python package manager & workflow tool.
 
-  * **Use when CUDA toolkit is *not* required in the environment.**
+# pixi (over mamba (over conda))
 
-* **`micromamba`** (+ `conda-forge` & strict priority)
+Why `mamba` instead of plain `conda`: **Much faster solves**: libmamba solver dramatically reduces dependency‐resolution time. 
 
-  * **Use when CUDA toolkit or conda‑only packages *are* required.**
-  * Why it’s productive vs classic `conda`:
+* **conda → mamba → pixi** is a speed & reproducibility ladder.
 
-    * **Single static binary** (no bootstrap solver overhead), fast dependency resolution (libmamba), reproducible CUDA stacks (`cudatoolkit`, MKL, etc.) *inside* the env without system‑wide installs.
+Why `pixi` instead of `mamba`: `pixi` takes the conda performance baseline and adds project‑centric features that reduce time‑to‑run and prevent drift across machines.
+
+`pixi` takes the fastest path for each ecosystem:
+
+* **Conda binaries:** When a package is available as a prebuilt conda package, `pixi` uses the same class of high-performance solver and parallel download/extract pipeline as `mamba` (libmamba/rattler style). 
+
+* **PyPI packages:** When you pull from PyPI, `pixi` delegates to **`uv`** under the hood, inheriting `uv`’s highly parallel resolution and download performance.
+
+**Outcome:** 
+
+* **When prebuilt conda binaries exist:** `pixi ≈ mamba ≫ uv`
+  *(uv can’t consume conda packages.)*
+
+* **When only PyPI wheels exist:** `pixi ≈ uv ≫ mamba`
+  *(mamba’s pip stage is typically more serial.)*
+
+* **When neither binaries nor wheels exist (source build):** `pixi ≈ uv ≈ mamba`
+  *(everyone is slow; compilation dominates.)*
+
+**Benchmark: Target LLM fine-tuning environment template**
+
+```toml
+# pyproject.toml (pixi section)
+[project]
+name = "dl-cu129"
+requires-python = ">=3.12"
+
+[tool.pixi.project]
+channels  = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.system-requirements]
+cuda = "12.9"                   # lock GPU capability
+
+[tool.pixi.dependencies]
+cuda-version = "12.9.*"         # pin the CUDA release line
+pytorch      = "2.7.1"          # example; choose the build that matches your stack
+flash-attn   = "2.8.3"          # example; channel build on Linux
+numpy = "*"
+pandas = "*"
+scikit-learn = "*"
+pyarrow = "*"
+tqdm = "*"
+accelerate = "*"
+datasets = "*"
+transformers = "*"
+peft = "*"
+bitsandbytes = "*"
+trl = "*"
+```
+
+result:
+
+
+![](https://raw.githubusercontent.com/ccss17/dotfiles/refs/heads/master/figure/pixi.gif)
+
+![](https://raw.githubusercontent.com/ccss17/dotfiles/refs/heads/master/figure/micromamba.gif)
+
+
+```bash
+$ /usr/bin/time -p pixi install
+...
+real 30.26
+user 79.93
+sys 28.76
+$ pixi project export conda-environment environment.yml
+$ /usr/bin/time -p micromamba create -n dl -f environment.yml -y
+...
+real 53.79
+user 94.04
+sys 41.59
+```
+
+**Interpretation:** `pixi` finished **~43.7% faster** wall-clock (**30.26s vs 53.79s**). In this run it also used **less total CPU time** (`user+sys`: **108.69s vs 135.63s**), suggesting less overall work and/or more efficient parallel fetch/extract and solving. 
+
 
 # Zsh Aliases 
 
-
-| Alias | Expands to   | Category   | Why it’s more productive                                              | Notes                                                 |
-| ----- | ------------ | ---------- | --------------------------------------------------------------------- | ----------------------------------------------------- |
-| `t`   | `tmux`       | Sessions   | 1‑char attach/create; resilient panes survive SSH drops.              | Use with `tmux a -t <name>` to reattach.              |
-| `v`   | `vim`        | Editing    | Fast editor launch; common muscle‑memory.                             | Pairs with `vim-plug` for instant plugin sync.        |
-| `c`   | `clear`      | UI         | Clears clutter instantly.                                             | Works in any shell.                                   |
-| `cl`  | `clear;ls`   | UI+Nav     | Clear + list current dir in one stroke; great after builds/pulls.     | Uses `lsd` (see below).                               |
-| `cs`  | `cd ..`      | Nav        | Go up one directory with 2 keys.                                      | Combine: `cs; cl`.                                    |
-| `l`   | `ls`         | Listing    | Short, frequent; keeps listing as default.                            | Aliased to `lsd` via `ls` below.                      |
-| `la`  | `ls -a`      | Listing    | Show dotfiles by default.                                             | `lsd` preserves colors/icons.                         |
-| `ll`  | `ls -la`     | Listing    | Long form with perms/owner/size.                                      | High‑signal directory scan.                           |
-| `lt`  | `ls --tree`  | Listing    | Tree view for quick structure overview.                               | Requires `lsd`.                                       |
-| `ls`  | `lsd`        | Listing    | Rich, colored, iconified output; faster visual parsing than GNU `ls`. | On Ubuntu/Debian, `lsd` is a separate pkg.            |
-| `g`   | `git`        | VCS        | Common git verbs now 1 char: `g s`, `g d`, `g c -m`…                  | Add your own `git` aliases inside `~/.gitconfig`.     |
-| `py`  | `python3`    | Python     | Always uses Py3 even if `python` points elsewhere.                    | Safer on mixed systems.                               |
-| `py2` | `python2`    | Python     | Legacy interpreter (if installed).                                    | Most distros no longer ship Python 2.                 |
-| `py3` | `python3`    | Python     | Redundant alias for clarity.                                          | Good for teaching/demo contexts.                      |
-| `mm`  | `micromamba` | Env        | Fast conda‑forge env mgmt, single static binary.                      | Use when CUDA toolkits or conda‑only pkgs are needed. |
-| `q`   | `exit`       | Shell      | Quick exit from subshells/tmux panes.                                 | Minimizes hand movement.                              |
-| `fd`  | `fdfind`     | Search     | Modern, fast file finder (gitignore‑aware).                           | Ubuntu/Debian name is `fdfind`.                       |
-| `bat` | `batcat`     | Viewer     | `cat` with syntax highlighting and Git integration.                   | Ubuntu/Debian binary is `batcat`.                     |
+| Alias | Expands to   |
+| ----- | ------------ |
+| `t`   | `tmux`       |
+| `v`   | `vim`        |
+| `cl`  | `clear;ls`   |
+| `l`   | `ls`         |
+| `ll`  | `ls -la`     |
+| `g`   | `git`        |
+| `mm`  | `micromamba` |
+| `q`   | `exit`       |
 
 # Global `.gitconfig` 
 
@@ -68,143 +131,40 @@ In your shell, `g` is an alias for `git`. In Git, we define short subcommands li
 | Shortcut       | Expands to                             | Purpose                                 |
 | -------------- | -------------------------------------- | --------------------------------------- |
 | `g s`          | `git status`                           | Quick status.                           |
-| `g sb`         | `git status -s -b`                     | Short status + branch line.             |
-| `g lg`         | `git log --oneline --graph --decorate` | Nice, compact history graph.            |
 | `g d`          | `git diff`                             | Working tree diff.                      |
-| `g dc`         | `git diff --cached`                    | Staged diff.                            |
-| `g dt`         | `git difftool`                         | Open external diff (vimdiff).           |
 | `g a`          | `git add --all`                        | Stage everything (tracked + untracked). |
-| `g c`          | `git commit`                           | Commit (opens editor).                  |
 | `g cm "msg"`   | `git commit -m "msg"`                  | Message inline.                         |
-| `g cd`         | `git commit --amend`                   | Amend last commit (keep message).       |
-| `g bc`         | `git rev-parse --abbrev-ref HEAD`      | Show current branch name.               |
 | `g o <branch>` | `git checkout <branch>`                | Switch branch.                          |
 | `g ob <new>`   | `git checkout -b <new>`                | Create + switch.                        |
-| `g ploc`       | `git pull origin $(git bc)`            | Pull current branch from origin.        |
-| `g pboc`       | `git pull --rebase origin $(git bc)`   | Rebase pull.                            |
-| `g psoc`       | `git push origin $(git bc)`            | Push current branch to origin.          |
-| `g psuoc`      | `git push -u origin $(git bc)`         | Push + set upstream.                    |
-| `g pr`         | `git prune -v`                         | Cleanup unreachable objects (local).    |
-| `g st`         | *counts stashes*                       | Number of stash entries.                |
-| `g ss`         | `git stash save`                       | Stash working state.                    |
-| `g sp`         | `git stash pop`                        | Apply + drop.                           |
-| `g rb`         | `git rebase`                           | Start/continue a rebase.                |
-| `g rbc`        | `git rebase --continue`                | Continue after conflict resolution.     |
-| `g rba`        | `git rebase --abort`                   | Abort rebase.                           |
-
-# Global `.gitignore`
-
-```gitignore
-# — OS cruft —
-.DS_Store
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-Icon?
-._*
-$RECYCLE.BIN/
-
-# — Editor/IDE temps —
-*~
-*.swp
-*.swo
-.#*
-\#*\#
-
-# — Generic build artifacts —
-*.o
-*.class
-*.exe
-*.dll
-*.com
-*.pid
-# *.so   # keep commented to avoid hiding intentional shared libs
-
-# — Logs —
-*.log
-
-# — Python caches (safe globally) —
-__pycache__/
-*.py[cod]
-*$py.class
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.ipynb_checkpoints/
-
-# — Archives & packages (from your original) —
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
-*.deb
-*.tgz
-
-# — Databases (from your original) —
-*.sql
-*.sqlite
-```
 
 # tmux Config
 
-This appendix explains **custom keybindings** that make tmux faster for day‑to‑day work on remote/ephemeral GPU hosts.
 
-- Prefix: `Ctrl‑A` (instead of `Ctrl‑B`)
-
-    * **Why**: `Ctrl‑A` is physically closer to the home row than `Ctrl‑B`. Lower hand travel → faster, less strain.
-    * `send-prefix` lets you forward `C‑a` to nested tmux/screen sessions when needed.
-
+- Prefix: `Ctrl‑A` (instead of `Ctrl‑B`): `Ctrl‑A` is physically closer to the home row than `Ctrl‑B`. Lower hand travel → faster, less strain.
 - Splits: mnemonic and ergonomic
-    * **`\\` (backslash) → left/right split** (Mnemonic: think of a **vertical divider** between panes.)
-    * **`-` (minus) → top/bottom split** (Mnemonic: a **horizontal bar** separating panes.)
+    * **`\\` (backslash) → left/right split** 
+    * **`-` (minus) → top/bottom split** 
 
 - Pane navigation & resizing (no prefix)
 
-    * **No‑prefix Nav**: Alt+`h/j/k/l` mirrors Vim movement across panes. Muscle memory carries over.
-    * **Coarse resize**: Alt+`←/→` adjusts width by 25 columns (quick layout fixes). Alt+`↑/↓` tweaks height by 5 rows for fine control.
-    * **Window ops** without prefix keep flows fluid while logs/models stream.
+    * **No‑prefix Nav**: Alt+`h/j/k/l` mirrors Vim movement across panes.
+    * **Coarse resize**: Alt+`←/→`. Alt+`↑/↓`.
 
 * **Cycle pane**: `Alt + o`
 * **New window / Next / Prev**: `Alt + c / Alt + n / Alt + p`
 
 # Vim Config 
 
-This appendix highlights **custom keybindings** that match your tmux ergonomics, and the **vim‑plug plugin set**—what each does and why it improves day‑to‑day productivity on remote GPU hosts.
-
-## Custom keybindings 
-
-**Window/tabs & layout**
-
 * `<Up>/<Down>` → `:resize -5 / +5` (shrink/grow height)
 * `<Left>/<Right>` → `:vertical resize -5 / +5` (shrink/grow width)
-
-**Pane navigation (split windows)**
-
 * `<C-h/j/k/l>` → `:wincmd h/j/k/l`
-  *Exactly the same movement keys you use in tmux; your muscle memory transfers 1:1.*
-
-**File tree & workflow**
-
 * `<C-p>` → `:NERDTreeToggle`
-  *One key to jump between code and file browser; hidden files are shown by default.*
 * `<C-s>` → `:w` (save)
 * `<C-q>` → `:q` (quit)
 
-
-## Plugins (via **vim‑plug**) 
+Plugins (via **vim‑plug**):
 
 * **`scrooloose/nerdtree`** File explorer with bookmarks; pairs with `<C-p>` toggle. 
-* **`terryma/vim-multiple-cursors`** Multi‑edit with `Ctrl‑n` / `Ctrl‑x` / `Ctrl‑p` (select next/skip/prev). **Why**: refactors and repetitive edits become trivial.
-* **`scrooloose/nerdcommenter`** Smart comment/uncomment with `gc`/`gcc`. **Why**: consistent across languages.
-* **`fidian/hexmode`** Toggle hex view with `:Hexmode`. **Why**: quick binary/weights inspection without leaving Vim.
-
-# mamba (over conda)
-
-Micromamba auto‑activation (vast.ai aware): **Intent**: Automatically land in the correct conda/mamba env on login.
-
-* On vast.ai **framework templates** (e.g., *PyTorch*), an env named **`main`** is precreated. Your logic detects it and runs `micromamba activate main`.
-* On bare **OS templates** (e.g., *Ubuntu 24 CUDA*), `main` does not exist yet, so it gracefully falls back to `micromamba activate base` (micromamba’s default root env).
+* **`terryma/vim-multiple-cursors`** Multi‑edit with `Ctrl‑n` / `Ctrl‑x` / `Ctrl‑p` 
+* **`scrooloose/nerdcommenter`** Smart comment/uncomment with `gc`/`gcc`.
+* **`fidian/hexmode`** Toggle hex view with `:Hexmode`.
