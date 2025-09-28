@@ -35,7 +35,7 @@ PIXI_SH="$WORK/install_pixi.sh"
 MM_TAR="$WORK/micromamba.tar"
 
 # ------------------------- parallel downloads -------------------------
-echo "[+] Parallel downloading artifacts (incl. plug.vim, OMZ, uv, micromamba)"
+echo "[+] Parallel downloading artifacts"
 curl -sSfL -Z --parallel-max 10 \
   -o "$HYPERFINE_DEB" "$HYPERFINE_DEB_URL" \
   -o "$LSD_DEB"      "$LSD_DEB_URL" \

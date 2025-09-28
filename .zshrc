@@ -5,7 +5,7 @@ export TERM="xterm-256color"
 export ZSH="$HOME/.oh-my-zsh"
 export INTERFACES="wlp2s0"
 export LANG="en_US.UTF-8"
-PATH=$PATH:~/.local/bin
+PATH=$PATH:~/.local/bin:~/.pixi/bin
 ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=( 
   z 
