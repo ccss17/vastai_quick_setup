@@ -10,6 +10,22 @@ Fast, interruptible‑friendly developer environment for deep learning on vast.a
 
 On vast.ai, **interruptible** (spot/auction) instances are often 2–4× cheaper than on‑demand, but they can be preempted. With frequent restarts, the real bottleneck becomes **environment setup time**.
 
+## Vast.ai GGul Tips
+
+#### 1. filter: internet speed >= 1Gbps
+
+![](figure/1.png)
+
+#### 2. filter: Interruptible + DLPerf/$/Hr --> rent H100/H200 GPU
+
+On-demand instances won’t be preempted—no one can outbid you—so they won’t be force-stopped, but they cost more than interruptible GPU instances. Even if the GPU instance you're using gets interrupted, you can spin up a new GPU instance and either clone the working path as-is or sync it to the cloud, so my in-progress workspace doesn’t get deleted. 
+
+![](figure/2.png)
+
+As for DLPert/$/Hr, it’s a cost-efficiency ranking by deep learning performance per hour; when you sort instances by this, H100 or H200 usually float to the top because they offer the best “performance-for-price” in deep learning. It’s actually cheaper and faster to rent an H100/H200 and finish a job that would take 4 hours in under 1 hour.
+
+
+
 ## What the script installs
 
 * **`pixi`** — fast, lockfile-first, GPU-aware environment manager that unifies conda binaries and PyPI (via `uv`) under one project manifest.
