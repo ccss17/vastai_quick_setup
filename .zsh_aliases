@@ -19,3 +19,4 @@ alias mm=micromamba
 alias q=exit
 alias fd=fdfind
 alias bat=batcat
+alias px=pixi
