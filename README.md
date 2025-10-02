@@ -54,7 +54,7 @@ Why `pixi` instead of `mamba`: `pixi` takes the conda performance baseline and a
 * **When neither binaries nor wheels exist (source build):** `pixi ≈ uv ≈ mamba`
   *(everyone is slow; compilation dominates.)*
 
-**Benchmark: Target LLM fine-tuning environment template**
+**Benchmark: LLM fine-tuning environment template**
 
 ```toml
 # pyproject.toml (pixi section)
