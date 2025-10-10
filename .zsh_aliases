@@ -16,6 +16,7 @@ alias py=python3
 alias py2=python2
 alias py3=python3
 alias mm=micromamba
+alias conda=micromamba
 alias q=exit
 alias fd=fdfind
 alias bat=batcat
