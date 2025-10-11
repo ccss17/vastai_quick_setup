@@ -128,13 +128,10 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo -e "${BLUE}=== Running vastai_quick_setup on remote host ===${NC}"
     
     ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" << 'EOF'
-if [ -d ~/vastai_quick_setup ]; then
-    echo "vastai_quick_setup already exists, pulling latest changes..."
-    cd ~/vastai_quick_setup && git pull
-else
+if [ ! -d ~/vastai_quick_setup ]; then
     cd ~ && git clone --depth 1 https://github.com/ccss17/vastai_quick_setup
+    cd ~/vastai_quick_setup && ./setup.sh
 fi
-cd ~/vastai_quick_setup && ./setup.sh
 EOF
     
     SETUP_EXIT=$?
