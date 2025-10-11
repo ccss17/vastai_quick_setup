@@ -72,7 +72,7 @@ done
 
 while true; do
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting rsync..."
-    eval rsync -avz $EXCLUDE_ARGS -e \"ssh -p $PORT\" \"$HOST:$REMOTE_PATH\" \"$LOCAL_PATH\"
+    eval rsync -avz --delete $EXCLUDE_ARGS -e \"ssh -p $PORT\" \"$HOST:$REMOTE_PATH\" \"$LOCAL_PATH\"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sync completed. Sleeping for $INTERVAL seconds..."
     sleep $INTERVAL
 done
