@@ -1,0 +1,78 @@
+#!/bin/bash
+
+usage() {
+    echo "Usage: $0 -h <host_or_user@host> -p <port> -r <remote_path> -l <local_path> -i <interval_sec> [-e <exclude_pattern>]..."
+    echo ""
+    echo "Options:"
+    echo "  -h, --host       Remote host (IP or user@host, defaults to root@IP if no @ present)"
+    echo "  -p, --port       SSH port"
+    echo "  -r, --remote     Remote path"
+    echo "  -l, --local      Local path"
+    echo "  -i, --interval   Sync interval in seconds"
+    echo "  -e, --exclude    Exclude pattern (can be used multiple times)"
+    echo ""
+    echo "Example:"
+    echo "  $0 -h 123.123.123.123 -p 54878 -r /root/PromptInjectionDetector/ -l ~/repo/ -i 10 -e '.pixi' -e '*.pyc' -e '__pycache__/'"
+    exit 1
+}
+
+HOST=""
+PORT=""
+REMOTE_PATH=""
+LOCAL_PATH=""
+INTERVAL=""
+EXCLUDES=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--host)
+            HOST="$2"
+            shift 2
+            ;;
+        -p|--port)
+            PORT="$2"
+            shift 2
+            ;;
+        -r|--remote)
+            REMOTE_PATH="$2"
+            shift 2
+            ;;
+        -l|--local)
+            LOCAL_PATH="$2"
+            shift 2
+            ;;
+        -i|--interval)
+            INTERVAL="$2"
+            shift 2
+            ;;
+        -e|--exclude)
+            EXCLUDES+=("$2")
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
+if [[ -z "$HOST" || -z "$PORT" || -z "$REMOTE_PATH" || -z "$LOCAL_PATH" || -z "$INTERVAL" ]]; then
+    echo "Error: Missing required parameters"
+    usage
+fi
+
+if [[ ! "$HOST" == *"@"* ]]; then
+    HOST="root@$HOST"
+fi
+
+EXCLUDE_ARGS=""
+for pattern in "${EXCLUDES[@]}"; do
+    EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude='$pattern'"
+done
+
+while true; do
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting rsync..."
+    eval rsync -avz $EXCLUDE_ARGS -e \"ssh -p $PORT\" \"$HOST:$REMOTE_PATH\" \"$LOCAL_PATH\"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sync completed. Sleeping for $INTERVAL seconds..."
+    sleep $INTERVAL
+done
