@@ -1,0 +1,129 @@
+#!/bin/bash
+# Simple rsync script with SSH connection parsing
+# Usage: ./simple_sync.sh <ssh_command> <local_path> <remote_path>
+
+set -e
+
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+show_help() {
+    cat << EOF
+=============================================================================
+Simple Sync Script
+=============================================================================
+
+Usage: $0 "<ssh_command>" <local_path> <remote_path>
+
+Arguments:
+    ssh_command    SSH connection string (e.g., "ssh -p 22232 root@69.176.92.125 -L 8080:localhost:8080")
+    local_path     Local directory path to sync
+    remote_path    Remote directory path destination
+
+Examples:
+    $0 "ssh -p 22232 root@69.176.92.125" ~/repo/project /root/project/
+    $0 "ssh -p 22232 root@69.176.92.125 -L 8080:localhost:8080" ~/repo/project /root/project/
+
+The script will extract:
+    - SSH port
+    - Username
+    - Hostname
+    
+And execute rsync with exclusions:
+    - .pixi
+    - *.pyc
+    - __pycache__/
+
+=============================================================================
+EOF
+    exit 0
+}
+
+# Check arguments
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    show_help
+fi
+
+if [[ $# -lt 3 ]]; then
+    echo -e "${RED}Error: Missing required arguments${NC}"
+    echo ""
+    show_help
+fi
+
+SSH_COMMAND="$1"
+LOCAL_PATH="$2"
+REMOTE_PATH="$3"
+
+# Parse SSH command
+# Extract port (default 22)
+if [[ "$SSH_COMMAND" =~ -p[[:space:]]+([0-9]+) ]]; then
+    SSH_PORT="${BASH_REMATCH[1]}"
+else
+    SSH_PORT="22"
+fi
+
+# Extract user@host
+if [[ "$SSH_COMMAND" =~ ([a-zA-Z0-9_-]+)@([a-zA-Z0-9._-]+) ]]; then
+    SSH_USER="${BASH_REMATCH[1]}"
+    SSH_HOST="${BASH_REMATCH[2]}"
+else
+    echo -e "${RED}Error: Could not parse user@host from SSH command${NC}"
+    echo "SSH command: $SSH_COMMAND"
+    exit 1
+fi
+
+# Display parsed information
+echo -e "${BLUE}=== Parsed SSH Connection ===${NC}"
+echo "  User:       $SSH_USER"
+echo "  Host:       $SSH_HOST"
+echo "  Port:       $SSH_PORT"
+echo "  Local:      $LOCAL_PATH"
+echo "  Remote:     $REMOTE_PATH"
+echo ""
+
+# Verify local path exists
+if [[ ! -e "$LOCAL_PATH" ]]; then
+    echo -e "${RED}Error: Local path does not exist: $LOCAL_PATH${NC}"
+    exit 1
+fi
+
+# Build and display rsync command
+echo -e "${BLUE}=== Executing rsync ===${NC}"
+echo ""
+
+RSYNC_CMD="rsync -avz \
+  --exclude='.pixi' \
+  --exclude='*.pyc' \
+  --exclude='__pycache__/' \
+  -e 'ssh -p $SSH_PORT' \
+  $LOCAL_PATH \
+  ${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}"
+
+echo "Command:"
+echo "$RSYNC_CMD"
+echo ""
+echo -e "${YELLOW}Starting sync...${NC}"
+echo ""
+
+# Execute rsync
+rsync -avz \
+  --exclude='.pixi' \
+  --exclude='*.pyc' \
+  --exclude='__pycache__/' \
+  -e "ssh -p $SSH_PORT" \
+  "$LOCAL_PATH" \
+  "${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}"
+
+EXIT_CODE=$?
+
+echo ""
+if [ $EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}✓ Sync completed successfully!${NC}"
+else
+    echo -e "${RED}✗ Sync failed with exit code: $EXIT_CODE${NC}"
+    exit $EXIT_CODE
+fi
