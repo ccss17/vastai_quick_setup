@@ -24,7 +24,7 @@ else
 fi
 unset __mamba_setup
 # <<< mamba initialize <<<
-if micromamba env list | grep -w '^main$' >/dev/null 2>&1; then
+if micromamba env list | grep -w 'main' >/dev/null 2>&1; then
   micromamba activate main
 else
   micromamba activate base
