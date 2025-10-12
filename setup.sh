@@ -6,7 +6,7 @@ export DEBIAN_FRONTEND=noninteractive
 # ------------------------- base packages -------------------------
 echo "[+] Installing base packages (single apt txn)"
 apt-get update -qq
-apt-get -y -qq install --no-install-recommends git zsh vim tmux unzip curl wget fd-find bat time nvtop python3.12-dev build-essential tree
+apt-get -y -qq install --no-install-recommends git zsh vim tmux unzip curl wget fd-find bat time nvtop build-essential tree
 
 # ------------------------- resolve versions -------------------------
 set +o pipefail
