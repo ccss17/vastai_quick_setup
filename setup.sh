@@ -124,3 +124,4 @@ echo 'LC_ALL="en_US.UTF-8"' >> /etc/default/locale
 echo "[+] Done."
 
 git config --global credential.helper store
+ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
